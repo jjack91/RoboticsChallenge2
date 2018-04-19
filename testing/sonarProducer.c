@@ -60,9 +60,13 @@ int isObjectFound() {
 }
 
 int getDistance() {
-  int distance = sonarDistanceBuffer[sonarConsumerIndex];
-  incrementSonarIndex(&sonarConsumerIndex);
-  return ;
+  if (objectFound == 1) {
+    int distance = sonarDistanceBuffer[sonarConsumerIndex];
+    incrementSonarIndex(&sonarConsumerIndex);
+    return distance;
+  } else {
+    return -1;
+  }
 }
 
 

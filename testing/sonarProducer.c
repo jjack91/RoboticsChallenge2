@@ -3,9 +3,11 @@
 /* Constants */
 static const int MAX_DISTANCE = 90; // in cm 
 static const int SONAR_BUFFER_SIZE = 50;
+static const int AVG_CHECK_SIZE = 10;
 
 /* */
 static void incrementSonarIndex(int *index);
+static int getNextDistance();
 
 /* */
 int isObjectFound();
@@ -22,7 +24,7 @@ static int currentDistance = 0;
 task populateSonarValues() {
     
   while(true) {        
-    currentDistance = SensorValue[sonar1];
+    currentDistance = getNextDistance(); // get noise-filtered distance
     // when object detected
     if (currentDistance <= MAX_DISTANCE) {
       objectFound = 1;
@@ -54,6 +56,15 @@ task populateSonarValues() {
 static void incrementIndex(int *index) {
 	*index = ++*index % BUFFER_SIZE;
 }
+
+staic int getNextDistance() {
+  int distance = 0;
+  for (int i = 0; i < AVG_CHECK_SIZE; i++) {
+    distance += SensorValue[sonar1];
+  }
+  return distance / AVG_CHECK_SIZE;
+}
+
 
 int isObjectFound() {
   return objectFound;

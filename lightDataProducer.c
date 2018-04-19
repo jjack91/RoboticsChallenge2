@@ -8,6 +8,9 @@ typedef enum Sensor {
 					 SENSOR_RIGHT,
 					 SENSOR_BOTH};
 
+static void readLightSensor();
+int getLightSensorData(Sensor theSensor);
+
 static int leftSensorRawReadings[READING_COUNT];
 static int rightSensorRawReadings[READING_COUNT];
 static int leftSensorAverageDarkBuffer[BUFFER_SIZE];
@@ -23,8 +26,7 @@ static int rightSensorLightIndex_DarkAve = 0; // Index for the buffer containing
 static int rightSensorLightIndex_rawReading = 0; // Index for the buffer containing unaveraged values for right sensor
 
 //static int processLightData();
-static int readLightSensor();
-int getLightSensorData(Sensor theSensor);
+
 
 /*
  * This task is responsible for handling reading in data into the buffers and then averaging
@@ -32,15 +34,38 @@ int getLightSensorData(Sensor theSensor);
  */
 task processLightData()
 {
+	for(;;)
+	{
+		readLightSensor();
+		if(leftSensorLightIndex_rawReading == (READING_COUNT - 1)
+		{
+			int leftAverage = 0;
+			int i;
+			for(i = 0; i < READING_COUNT - 1; i++)
+			{
+				leftAverage += leftSensorRawReadings[i];
+			}
+			leftAverage = leftAverage / READING_COUNT;
 
+			if(leftAverage-TOLERANCE_THRESHOLD >= leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve-1]
+				&& leftAverage+TOLERANCE_THRESHOLD <= leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve-1])
+			{
+				leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] = leftAverage;
+			}
+		}
+	}
 }
 
 /*
  * This function will be called periodically to read raw data from both sensors.
  */
-static int readLightSensor()
+static void readLightSensor()
 {
+	leftSensorRawReadings[leftSensorLightIndex_rawReading] = SensorValue[S4];
+	rightSensorRawReadings[rightSensorLightIndex_rawReading] = SensorValue[S3];
 
+	leftSensorLightIndex_rawReading++;
+	rightSensorLightIndex_rawReading++;
 }
 
 /*

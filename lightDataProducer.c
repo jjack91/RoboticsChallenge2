@@ -51,7 +51,39 @@ task processLightData()
 				&& leftAverage+TOLERANCE_THRESHOLD <= leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve-1])
 			{
 				leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] = leftAverage;
+				leftSensorLightIndex_DarkAve++;
 			}
+			else
+			{
+				leftSensorAverageLightBuffer[leftSensorLightIndex_LightAve] = leftAverage;
+				leftSensorLightIndex_LightAve++;
+			}
+			
+			leftSensorLightIndex_rawReading = 0;
+		}
+		if(rightSensorLightIndex_rawReading == (READING_COUNT - 1)
+		{
+			int rightAverage = 0;
+			int i;
+			for(i = 0; i < READING_COUNT - 1; i++)
+			{
+				rightAverage += rightSensorRawReadings[i];
+			}
+			rightAverage = rightAverage / READING_COUNT;
+
+			if(rightAverage-TOLERANCE_THRESHOLD >= rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve-1]
+				&& rightAverage+TOLERANCE_THRESHOLD <= rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve-1])
+			{
+				rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] = rightAverage;
+				rightSensorLightIndex_DarkAve++;
+			}
+			else
+			{
+				rightSensorAverageLightBuffer[rightSensorLightIndex_LightAve] = rightAverage;
+				rightSensorLightIndex_LightAve++;
+			}
+			
+			rightSensorLightIndex_rawReading = 0;
 		}
 	}
 }

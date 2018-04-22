@@ -1,6 +1,9 @@
 #define READING_COUNT 10
 #define BUFFER_SIZE 10
 #define TOLERANCE_THRESHOLD 3
+#define true 1
+#define false 0
+
 
 typedef enum Sensor {
 					 SENSOR_NONE = -1,
@@ -17,6 +20,9 @@ static int leftSensorAverageDarkBuffer[BUFFER_SIZE];
 static int leftSensorAverageLightBuffer[BUFFER_SIZE];
 static int rightSensorAverageDarkBuffer[BUFFER_SIZE];
 static int rightSensorAverageLightBuffer[BUFFER_SIZE];
+
+static int isLeftDark = false;
+static int isRightDark = false;
 
 static int leftSensorLightIndex_LightAve = 0; // Index for the buffer containing average light-type values for left sensor
 static int leftSensorLightIndex_DarkAve = 0; // Index for the buffer containing average dark-type values for left sensor
@@ -51,12 +57,14 @@ task processLightData()
 				&& leftAverage+TOLERANCE_THRESHOLD <= leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve-1])
 			{
 				leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] = leftAverage;
-				leftSensorLightIndex_DarkAve++;
+				leftSensorLightIndex_DarkAve = ++leftSensorLightIndex_DarkAve % BUFFER_SIZE;
+				isLeftDark = true;
 			}
 			else
 			{
 				leftSensorAverageLightBuffer[leftSensorLightIndex_LightAve] = leftAverage;
-				leftSensorLightIndex_LightAve++;
+				leftSensorLightIndex_LightAve = ++leftSensorLightIndex_LightAve % BUFFER_SIZE;
+				isLeftDark = false;
 			}
 			
 			leftSensorLightIndex_rawReading = 0;
@@ -75,12 +83,14 @@ task processLightData()
 				&& rightAverage+TOLERANCE_THRESHOLD <= rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve-1])
 			{
 				rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] = rightAverage;
-				rightSensorLightIndex_DarkAve++;
+				rightSensorLightIndex_DarkAve = ++rightSensorLightIndex_DarkAve % BUFFER_SIZE;
+				isRightDark = true;
 			}
 			else
 			{
 				rightSensorAverageLightBuffer[rightSensorLightIndex_LightAve] = rightAverage;
-				rightSensorLightIndex_LightAve++;
+				rightSensorLightIndex_LightAve = ++rightSensorLightIndex_LightAve % BUFFER_SIZE;
+				isRightDark = false;
 			}
 			
 			rightSensorLightIndex_rawReading = 0;
@@ -107,5 +117,16 @@ static void readLightSensor()
  */
 int getLightSensorData(Sensor theSensor)
 {
-
+	if(theSensor == SENSOR_LEFT)
+	{
+		return isLeftDark;
+	}
+	else if(theSensor == SENSOR_RIGHT)
+	{
+		return isRightDark;
+	}
+	else if(theSensor == SENSOR_BOTH)
+	{
+		return isLeftDark + isRightDark;
+	}
 }

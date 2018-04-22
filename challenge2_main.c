@@ -6,6 +6,7 @@
 /**********Includes**********/
 #include "timeProducer.c"
 #include "speedProducer.c"
+#include "lightDataProducer.c"
 
 /**********Defined Variables**********/
 #define LEFT_SENSOR S4
@@ -77,6 +78,7 @@ task main() {
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
 	startTask(populateSpeeds);
+	
 
 	// The loop for the robot's movement.
 	while(true) {
@@ -242,21 +244,21 @@ static int sensorBump() {
 	Sensor sensor = SENSOR_NONE;
 
 	// Check if the left sensor was bumped.
-	if (SensorValue(LEFT_SENSOR) <=  COLOR_BLACK_L) {
+	if (getLightSensorData(SENSOR_LEFT) == 1) {
 		sleep(10);
 		// Checks if the right sensor was bumped after 10 ms which
 		// counts as both sensors being bumped.
-		if (SensorValue(RIGHT_SENSOR) <= COLOR_BLACK_R) {
+		if (getLightSensorData(SENSOR_RIGHT) == 1) {
 			sensor = SENSOR_BOTH;
 		} else { // Just the left sensor was bumped.
 			sensor = SENSOR_LEFT;
 		}
 	// Check if the right sensor was bumped.
-	} else if (SensorValue(RIGHT_SENSOR) <= COLOR_BLACK_R) {
+	} else if (getLightSensorData(SENSOR_RIGHT) == 1) {
 		sleep(10);
 		// Checks if the left sensor was bumped after 10 ms which
 		// counts as both sensors being bumped.
-		if (SensorValue(LEFT_SENSOR) <= COLOR_BLACK_L) {
+		if (getLightSensorData(SENSOR_LEFT) == 1) {
 			sensor = SENSOR_BOTH;
 		} else { // Just the right sensor was bumped.
 			sensor = SENSOR_RIGHT;
@@ -278,16 +280,16 @@ static int sensorBump() {
 		//	reverse();
 		//	turn(TURN_RIGHT);
 			setLEDColor(ledOrangePulse);
-			//veer(DIR_LEFT, SPEED_LOW);
-			turn(TURN_LEFT);
+			veer(DIR_LEFT, 0);
+			//turn(TURN_LEFT);
 			//sleep(500);
 			return 1;
 		case (SENSOR_RIGHT) :
 		//	reverse();
 		//	turn(TURN_LEFT);
 			setLEDColor(ledRed);
-			//veer(DIR_RIGHT, SPEED_LOW);
-			turn(TURN_RIGHT);
+			veer(DIR_RIGHT, 0);
+			//turn(TURN_RIGHT);
 			//sleep(500);
 			return 1;
 		default : // SENSOR_NONE
@@ -299,7 +301,7 @@ static void calibrate()
 {
 	displayBigTextLine(4, "Place light");
 	displayBigTextLine(6, "sensors over");
-	displayBigTextLine(8, "WHITE");
+	displayBigTextLine(8, "BLACK");
 
 	sleep(1000);
 	displayBigTextLine(1, "5");
@@ -313,23 +315,25 @@ static void calibrate()
 	displayBigTextLine(1, "1");
 	sleep(1000);
 	displayBigTextLine(1, "0 ... Reading...");
+	startTask(processLightData);
 
-	COLOR_WHITE_L = SensorValue(left_light_sensor);
-	COLOR_WHITE_R = SensorValue(right_light_sensor);
-	sleep(300);
 
 	displayBigTextLine(4, "");
 	displayBigTextLine(6, "");
 	displayBigTextLine(8, "");
 
-
-
-	COLOR_BLACK_L = SensorValue(left_light_sensor);
-	COLOR_BLACK_R = SensorValue(right_light_sensor);
 	sleep(300);
 
 	displayBigTextLine(1, "");
 	displayBigTextLine(4, "");
 	displayBigTextLine(6, "");
 	displayBigTextLine(8, "");
+	
+	motor(LEFT_MOTOR) = SPEED_LOW;
+	motor(RIGHT_MOTOR) = SPEED_LOW;
+	
+	while(getLightSensorData(SENSOR_BOTH) > 0)
+	{
+		//spin-wait
+	}
 }

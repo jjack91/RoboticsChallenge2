@@ -22,7 +22,7 @@ static int currentDistance = 0;
 /* Tasks to populate the distances retrieved from the sonar sensor
    into a buffer that tells the robot how close they are to an object
    if they are within about 3 feet of it. */
-task populateSonarValues() {
+task processSonarValues() {
     
   while(true) {        
     currentDistance = getNextDistance(); // get noise-filtered distance
@@ -30,7 +30,7 @@ task populateSonarValues() {
     if (currentDistance <= MAX_DISTANCE) {
       objectFound = 1;
       // ensure currentDistance is less than previous distance where possible
-      if (sonarProducerIndex > 0 {
+      if (sonarProducerIndex > 0) {
         while (currentDistance-- > sonarDistanceBuffer[sonarProducerIndex - 1]) {}
       }
       // load up the buffer
@@ -48,7 +48,7 @@ task populateSonarValues() {
     
     // dont try to populate buffer if we havent consumed 
     if (sonarProducerIndex == sonarConsumerIndex) {
-      abortTimeSlice();
+      abortTimeslice();
     }
   }
 
@@ -56,16 +56,16 @@ task populateSonarValues() {
 
 /* Increments the given index by 1. The given index will not
 	 exceed BUFFER_SIZE. */
-static void incrementIndex(int *index) {
-	*index = ++*index % BUFFER_SIZE;
+static void incrementSonarIndex(int *index) {
+	*index = ++*index % SONAR_BUFFER_SIZE;
 }
 
 /* Gets the next normalized distance measurement from the
    sonar sensor. */
-staic int getNextDistance() {
+static int getNextDistance() {
   int distance = 0;
   for (int i = 0; i < AVG_CHECK_SIZE; i++) {
-    distance += SensorValue[sonar1];
+    distance += SensorValue[S1];
   }
   return distance / AVG_CHECK_SIZE;
 }
@@ -89,10 +89,3 @@ int getDistance() {
     return -1;
   }
 }
-
-
-
-
-
-
-

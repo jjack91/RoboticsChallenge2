@@ -33,12 +33,12 @@ typedef enum Turn {
 				   TURN_RIGHT,
 				   TURN_AROUND};
 
-typedef enum Sensor {
+/*typedef enum Sensor {
 					 SENSOR_NONE = -1,
 					 SENSOR_LEFT,
 					 SENSOR_RIGHT,
 					 SENSOR_BOTH};
-
+*/
 typedef enum Speed {
 				  SPEED_LOW = -15,
 					SPEED_HIGH = -40,
@@ -78,7 +78,8 @@ task main() {
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
 	startTask(populateSpeeds);
-	
+	//startTask(processLightData);
+
 
 	// The loop for the robot's movement.
 	while(true) {
@@ -130,6 +131,7 @@ static void traverse(Direction dir) {
 		}
 		setLEDColor(ledGreen);
 		sleep(INTERRUPT_CHECK_MS);
+		displayBigTextLine(10, "");
 	}
 }
 
@@ -315,25 +317,27 @@ static void calibrate()
 	displayBigTextLine(1, "1");
 	sleep(1000);
 	displayBigTextLine(1, "0 ... Reading...");
-	startTask(processLightData);
 
+	primeBuffer();
 
 	displayBigTextLine(4, "");
 	displayBigTextLine(6, "");
 	displayBigTextLine(8, "");
 
 	sleep(300);
-
+	startTask(processLightData);
 	displayBigTextLine(1, "");
 	displayBigTextLine(4, "");
 	displayBigTextLine(6, "");
 	displayBigTextLine(8, "");
-	
-	motor(LEFT_MOTOR) = SPEED_LOW;
-	motor(RIGHT_MOTOR) = SPEED_LOW;
-	
+
+//	motor(LEFT_MOTOR) = SPEED_LOW;
+//	motor(RIGHT_MOTOR) = SPEED_LOW;
+
 	while(getLightSensorData(SENSOR_BOTH) > 0)
 	{
 		//spin-wait
+		sleep(100);
 	}
+	displayBigTextLine(1, "Running");
 }

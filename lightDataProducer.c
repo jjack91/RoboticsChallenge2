@@ -55,16 +55,17 @@ task processLightData()
 			}
 			leftAverage = leftAverage / READING_COUNT;
 			displayBigTextLine(8, "Looking at %d", leftAverage);
-			displayBigTextLine(6, "Last Avg: %d", leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]);
-			if(leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD >= leftAverage
-				&& leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] >= leftAverage-TOLERANCE_THRESHOLD)
+			displayBigTextLine(6, "Last Dark Avg: %d", leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]);
+      // if average value from raw readings is within range : 0 to current avg value from buffer + TOLERANCE 
+      // store the average in the dark buffer
+			if(leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD >= leftAverage)
 			{
 				displayBigTextLine(12, "Stashing: %d", leftAverage);
 				leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] = leftAverage;
 				leftSensorLightIndex_DarkAve = ++leftSensorLightIndex_DarkAve % BUFFER_SIZE;
 				isLeftDark = 1;
 			}
-			else
+			else // otherwise store it in the light avg buffer
 			{
 				leftSensorAverageLightBuffer[leftSensorLightIndex_LightAve] = leftAverage;
 				leftSensorLightIndex_LightAve = ++leftSensorLightIndex_LightAve % BUFFER_SIZE;

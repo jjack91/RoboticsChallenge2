@@ -331,8 +331,8 @@ static void calibrate()
 	displayBigTextLine(6, "");
 	displayBigTextLine(8, "");
 
-//	motor(LEFT_MOTOR) = SPEED_LOW;
-//	motor(RIGHT_MOTOR) = SPEED_LOW;
+	motor(LEFT_MOTOR) = SPEED_LOW;
+	motor(RIGHT_MOTOR) = SPEED_LOW;
 
 	while(getLightSensorData(SENSOR_BOTH) > 0)
 	{

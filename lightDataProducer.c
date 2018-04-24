@@ -7,9 +7,9 @@
 
 typedef enum Sensor {
 					 SENSOR_NONE = -1,
-					 SENSOR_LEFT,
-					 SENSOR_RIGHT,
-					 SENSOR_BOTH};
+					 SENSOR_LEFT = 0,
+					 SENSOR_RIGHT = 1,
+					 SENSOR_BOTH = 2};
 
 static void readLightSensor();
 int getLightSensorData(Sensor theSensor);
@@ -56,11 +56,12 @@ task processLightData()
 			leftAverage = leftAverage / READING_COUNT;
 			displayBigTextLine(8, "Looking at %d", leftAverage);
 			displayBigTextLine(6, "Last Avg: %d", leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]);
-			if(leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD >= leftAverage
-				&& leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] >= leftAverage-TOLERANCE_THRESHOLD)
+			displayBigTextLine(12, "Status: L=%d R=%d", isLeftDark, isRightDark);
+			if(leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD <= leftAverage
+				/*&& leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] >= leftAverage-TOLERANCE_THRESHOLD*/)
 			{
-				displayBigTextLine(12, "Stashing: %d", leftAverage);
-				leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] = leftAverage;
+
+				leftSensorAverageDarkBuffer[(leftSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = leftAverage;
 				leftSensorLightIndex_DarkAve = ++leftSensorLightIndex_DarkAve % BUFFER_SIZE;
 				isLeftDark = 1;
 			}
@@ -70,10 +71,12 @@ task processLightData()
 				leftSensorLightIndex_LightAve = ++leftSensorLightIndex_LightAve % BUFFER_SIZE;
 				isLeftDark = 0;
 			}
+			displayBigTextLine(8, "");
+			displayBigTextLine(6, "");
 
 			leftSensorLightIndex_rawReading = 0;
 		}
-		else if(rightSensorLightIndex_rawReading == (READING_COUNT - 1))
+		if(rightSensorLightIndex_rawReading == (READING_COUNT - 1))
 		{
 			int rightAverage = 0;
 			int i;
@@ -83,10 +86,10 @@ task processLightData()
 			}
 			rightAverage = rightAverage / READING_COUNT;
 
-			if(rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] <= rightAverage-TOLERANCE_THRESHOLD
-				&& rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD <= rightAverage)
+			if(/*rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] >= rightAverage-TOLERANCE_THRESHOLD
+				&&*/ rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD <= rightAverage)
 			{
-				rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] = rightAverage;
+				rightSensorAverageDarkBuffer[(rightSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = rightAverage;
 				rightSensorLightIndex_DarkAve = ++rightSensorLightIndex_DarkAve % BUFFER_SIZE;
 				isRightDark = 1;
 			}
@@ -116,7 +119,7 @@ static void readLightSensor()
 {
 	leftSensorRawReadings[leftSensorLightIndex_rawReading] = SensorValue[S4];
 	rightSensorRawReadings[rightSensorLightIndex_rawReading] = SensorValue[S3];
-	displayBigTextLine(10, "Index: %d", leftSensorLightIndex_rawReading);
+	//displayBigTextLine(10, "Index: %d", leftSensorLightIndex_rawReading);
 	leftSensorLightIndex_rawReading = ++leftSensorLightIndex_rawReading % READING_COUNT;
 	rightSensorLightIndex_rawReading = ++rightSensorLightIndex_rawReading % READING_COUNT;
 }
@@ -146,11 +149,12 @@ int getLightSensorData(Sensor theSensor)
 	}
 	else if(theSensor == SENSOR_BOTH)
 	{
-		//displayBigTextLine(10, "Both is: %d", (isRightDark + isLeftDark));
+		displayBigTextLine(10, "Both is: %d", (isRightDark + isLeftDark));
 		return isLeftDark + isRightDark;
 	}
 	else
 	{
+		displayBigTextLine(10, "Sensor return Error");
 		return 0;
 	}
 }

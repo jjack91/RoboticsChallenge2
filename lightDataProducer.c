@@ -64,7 +64,7 @@ task processLightData()
 
 				leftSensorAverageDarkBuffer[(leftSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = leftAverage;
 				leftSensorLightIndex_DarkAve = ++leftSensorLightIndex_DarkAve % BUFFER_SIZE;
-				isLeftDark = 1;
+				isLeftDark = 1; 
 			}
 			else // otherwise store it in the light avg buffer
 			{

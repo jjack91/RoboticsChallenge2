@@ -54,20 +54,17 @@ task processLightData()
 				leftAverage += leftSensorRawReadings[i];
 			}
 			leftAverage = leftAverage / READING_COUNT;
+			displayBigTextLine(6, "Last Avg: %d", leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]);
 			displayBigTextLine(8, "Looking at %d", leftAverage);
-			displayBigTextLine(6, "Last Dark Avg: %d", leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]);
-			displayBigTextLine(12, "Status: L=%d R=%d", isLeftDark, isRightDark);
-      // if average value from raw readings is within range : 0 to current avg value from buffer + TOLERANCE 
-      // store the average in the dark buffer
-			if(leftAverage <= leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD
+			if(leftAverage <= (leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD)
 				/*&& leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] >= leftAverage-TOLERANCE_THRESHOLD*/)
 			{
 
 				leftSensorAverageDarkBuffer[(leftSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = leftAverage;
 				leftSensorLightIndex_DarkAve = ++leftSensorLightIndex_DarkAve % BUFFER_SIZE;
-				isLeftDark = 1; 
+				isLeftDark = 1;
 			}
-			else // otherwise store it in the light avg buffer
+			else
 			{
 				leftSensorAverageLightBuffer[leftSensorLightIndex_LightAve] = leftAverage;
 				leftSensorLightIndex_LightAve = ++leftSensorLightIndex_LightAve % BUFFER_SIZE;
@@ -89,7 +86,7 @@ task processLightData()
 			rightAverage = rightAverage / READING_COUNT;
 
 			if(/*rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] >= rightAverage-TOLERANCE_THRESHOLD
-				&&*/  rightAverage <= rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD)
+				&&*/  rightAverage <= (rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD))
 			{
 				rightSensorAverageDarkBuffer[(rightSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = rightAverage;
 				rightSensorLightIndex_DarkAve = ++rightSensorLightIndex_DarkAve % BUFFER_SIZE;
@@ -104,7 +101,8 @@ task processLightData()
 
 			rightSensorLightIndex_rawReading = 0;
 		}
-		else
+		displayBigTextLine(12, "L: %d, R: %d", isLeftDark, isRightDark);
+		if ((rightSensorLightIndex_rawReading < (READING_COUNT - 1) && (leftSensorLightIndex_rawReading < (READING_COUNT - 1)))
 		{
 			displayBigTextLine(4, "");
 			abortTimeslice();
@@ -151,7 +149,7 @@ int getLightSensorData(Sensor theSensor)
 	}
 	else if(theSensor == SENSOR_BOTH)
 	{
-		displayBigTextLine(10, "Both is: %d", (isRightDark + isLeftDark));
+		//displayBigTextLine(10, "Both is: %d", (isRightDark + isLeftDark));
 		return isLeftDark + isRightDark;
 	}
 	else

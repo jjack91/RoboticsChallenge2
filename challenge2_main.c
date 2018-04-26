@@ -6,7 +6,7 @@
 /**********Includes**********/
 #include "timeProducer.c"
 #include "speedProducer.c"
-#include "lightDataProducer.c"
+//#include "lightDataProducer_alt.c"
 
 /**********Defined Variables**********/
 #define LEFT_SENSOR S4
@@ -33,12 +33,12 @@ typedef enum Turn {
 				   TURN_RIGHT,
 				   TURN_AROUND};
 
-/*typedef enum Sensor {
+typedef enum Sensor {
 					 SENSOR_NONE = -1,
 					 SENSOR_LEFT,
 					 SENSOR_RIGHT,
 					 SENSOR_BOTH};
-*/
+
 typedef enum Speed {
 				  SPEED_LOW = -15,
 					SPEED_HIGH = -40,
@@ -55,6 +55,8 @@ static int COLOR_BLACK_L;
 static int COLOR_WHITE_L;
 static int COLOR_BLACK_R;
 static int COLOR_WHITE_R;
+static int thresholdLeft;
+static int thresholdRight;
 
 /**********Private Function Prototypes**********/
 static void walk();
@@ -68,12 +70,20 @@ static void stopMotors();
 static int sensorBump();
 static int sensorDetect();
 static void calibrate();
+static void rightSensorTest();
+static void leftSensorTest();
+static void bothSensorTest();
+int getLightSensorData(Sensor theSensor);
+static void createLeftThreshold();
+static void createRightThreshold();
 
 
 /* Main starting point of the program. */
 task main() {
 
 	calibrate();
+	//bothSensorTest();
+
 
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
@@ -303,7 +313,7 @@ static void calibrate()
 {
 	displayBigTextLine(4, "Place light");
 	displayBigTextLine(6, "sensors over");
-	displayBigTextLine(8, "BLACK");
+	displayBigTextLine(8, "WHITE");
 
 	sleep(1000);
 	displayBigTextLine(1, "5");
@@ -318,26 +328,132 @@ static void calibrate()
 	sleep(1000);
 	displayBigTextLine(1, "0 ... Reading...");
 
-	primeBuffer();
+	createLeftThreshold();
+	reverse();
+	createRightThreshold();
 
-	displayBigTextLine(4, "");
-	displayBigTextLine(6, "");
-	displayBigTextLine(8, "");
 
-	sleep(300);
-	startTask(processLightData);
-	displayBigTextLine(1, "");
-	displayBigTextLine(4, "");
-	displayBigTextLine(6, "");
-	displayBigTextLine(8, "");
+	displayBigTextLine(1, "Running");
+}
 
+static void rightSensorTest()
+{
+	int white = SensorValue[S3];
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
 
-	while(getLightSensorData(SENSOR_BOTH) > 0)
+	while(SensorValue[S3] >= white-5)
 	{
-		//spin-wait
 		sleep(100);
 	}
-	displayBigTextLine(1, "Running");
+	motor(LEFT_MOTOR) = 0;
+	motor(RIGHT_MOTOR) = 0;
+}
+
+static void leftSensorTest()
+{
+	int white = SensorValue[S4];
+	motor(LEFT_MOTOR) = SPEED_LOW;
+	motor(RIGHT_MOTOR) = SPEED_LOW;
+
+	while(SensorValue[S4] >= white-5)
+	{
+		sleep(100);
+	}
+	motor(LEFT_MOTOR) = 0;
+	motor(RIGHT_MOTOR) = 0;
+}
+
+static void bothSensorTest()
+{
+	int whiteL = SensorValue[S4];
+	int whiteR = SensorValue[S3];
+	motor(LEFT_MOTOR) = SPEED_LOW;
+	motor(RIGHT_MOTOR) = SPEED_LOW;
+
+	while(SensorValue[S4] >= whiteL-5 || SensorValue[S3] >= whiteR-5)
+	{
+		sleep(100);
+	}
+	motor(LEFT_MOTOR) = 0;
+	motor(RIGHT_MOTOR) = 0;
+}
+
+int getLightSensorData(Sensor theSensor)
+{
+	if(theSensor == SENSOR_RIGHT)
+	{
+		if(SensorValue[S4] < thresholdLeft)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+
+	}
+	else if(theSensor == SENSOR_LEFT)
+	{
+		if(SensorValue[S3] < thresholdRight)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+
+	}
+	else if(theSensor == SENSOR_BOTH)
+	{
+		if((SensorValue[S4] < thresholdLeft) && (SensorValue[S3] < thresholdRight))
+		{
+			return 2;
+		}
+		else
+		{
+			return 0;
+		}
+
+	}
+	else
+	{
+		displayBigTextLine(10, "Sensor return Error");
+		return 0;
+	}
+}
+
+static void createLeftThreshold()
+{
+	int white = SensorValue[S4];
+	motor(LEFT_MOTOR) = SPEED_LOW;
+	motor(RIGHT_MOTOR) = SPEED_LOW;
+
+	while(SensorValue[S4] >= white-5)
+	{
+		sleep(100);
+	}
+	motor(LEFT_MOTOR) = 0;
+	motor(RIGHT_MOTOR) = 0;
+
+	int black = SensorValue[S4];
+	thresholdLeft = (white + black)/2;
+}
+
+static void createRightThreshold()
+{
+	int white = SensorValue[S3];
+	motor(LEFT_MOTOR) = SPEED_LOW;
+	motor(RIGHT_MOTOR) = SPEED_LOW;
+
+	while(SensorValue[S3] >= white-5)
+	{
+		sleep(100);
+	}
+	motor(LEFT_MOTOR) = 0;
+	motor(RIGHT_MOTOR) = 0;
+
+	int black = SensorValue[S3];
+	thresholdRight = (white + black)/2;
 }

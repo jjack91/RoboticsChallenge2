@@ -66,7 +66,7 @@ static void incrementSonarIndex(int *index) {
 static int getNextDistance() {
   int distance = 0;
   for (int i = 0; i < AVG_CHECK_SIZE; i++) {
-    distance += SensorValue[SONAR_SENSOR];
+    distance += SensorValue[S1];
   }
   return distance / AVG_CHECK_SIZE;
 }

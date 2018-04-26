@@ -1,5 +1,5 @@
 /* Private Constants */
-static const int MAX_DISTANCE = 90; // in cm 
+static const int MAX_DISTANCE = 90; // in cm
 static const int SONAR_BUFFER_SIZE = 50;
 static const int AVG_CHECK_SIZE = 10;
 
@@ -23,33 +23,33 @@ static int currentDistance = 0;
    into a buffer that tells the robot how close they are to an object
    if they are within about 3 feet of it. */
 task populateSonarValues() {
-    
-  while(true) {        
+
+  while(true) {
     currentDistance = getNextDistance(); // get noise-filtered distance
     // when object detected
     if (currentDistance <= MAX_DISTANCE) {
       objectFound = 1;
       // ensure currentDistance is less than previous distance where possible
-      if (sonarProducerIndex > 0 {
+      if (sonarProducerIndex > 0) {
         while (currentDistance-- > sonarDistanceBuffer[sonarProducerIndex - 1]) {}
       }
       // load up the buffer
       sonarDistanceBuffer[sonarProducerIndex] = currentDistance;
       incrementSonarIndex(&sonarProducerIndex);
     }
-    
+
     // no object detected
     if (currentDistance > MAX_DISTANCE) {
       objectFound = 0;
-      // purge buffer, no object detected 
-      sonarDistanceBuffer[0] = -1
+      // purge buffer, no object detected
+      sonarDistanceBuffer[0] = -1;
       sonarProducerIndex = 0;
       sonarConsumerIndex = 0;
     }
-    
-    // dont try to populate buffer if we havent consumed 
+
+    // dont try to populate buffer if we havent consumed
     if (sonarProducerIndex == sonarConsumerIndex) {
-      abortTimeSlice();
+      abortTimeslice();
     }
   }
 
@@ -57,13 +57,13 @@ task populateSonarValues() {
 
 /* Increments the given index by 1. The given index will not
 	 exceed BUFFER_SIZE. */
-static void incrementIndex(int *index) {
-	*index = ++*index % BUFFER_SIZE;
+static void incrementSonarIndex(int *index) {
+	*index = ++*index % SONAR_BUFFER_SIZE;
 }
 
 /* Gets the next normalized distance measurement from the
    sonar sensor. */
-staic int getNextDistance() {
+static int getNextDistance() {
   int distance = 0;
   for (int i = 0; i < AVG_CHECK_SIZE; i++) {
     distance += SensorValue[SONAR_SENSOR];
@@ -74,12 +74,12 @@ staic int getNextDistance() {
 
 /* [Possibly Deprecated] */
 /* Checks whether or not an object is found.
-   Returns 1 if found, 0 otherwise. */ 
+   Returns 1 if found, 0 otherwise. */
 int isObjectFound() {
   return objectFound;
 }
 
-/* Provides the next normalized distance from the 
+/* Provides the next normalized distance from the
    distance buffer and increments the proper pointers */
 int getDistance() {
   if (objectFound == 1) {
@@ -90,10 +90,3 @@ int getDistance() {
     return -1;
   }
 }
-
-
-
-
-
-
-

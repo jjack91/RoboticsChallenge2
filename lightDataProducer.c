@@ -78,6 +78,7 @@ task processLightData()
 
 			leftSensorLightIndex_rawReading = 0;
 		}
+		
 		if(rightSensorLightIndex_rawReading == (READING_COUNT - 1))
 		{
 			int rightAverage = 0;

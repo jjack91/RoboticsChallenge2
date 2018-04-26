@@ -7,10 +7,12 @@
 #include "timeProducer.c"
 #include "speedProducer.c"
 #include "lightDataProducer.c"
+#include "sonarDataProducer.c"
 
 /**********Defined Variables**********/
 #define LEFT_SENSOR S4
 #define RIGHT_SENSOR S3
+#define SONAR_SENSOR S1
 #define LEFT_MOTOR motorA
 #define RIGHT_MOTOR motorB
 
@@ -78,6 +80,7 @@ task main() {
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
 	startTask(populateSpeeds);
+	startTask(populateSonarValues)
 	//startTask(processLightData);
 
 
@@ -241,30 +244,20 @@ static int sensorBump() {
 	}
 }
 
-	static int sensorDetect() {
+static int sensorDetect() {
 
 	Sensor sensor = SENSOR_NONE;
+	int leftSensor = getLightSensorData(SENSOR_LEFT);
+	int rightSensor = getLightSensorData(SENSOR_RIGHT)
 
 	// Check if the left sensor was bumped.
-	if (getLightSensorData(SENSOR_LEFT) == 1) {
-		sleep(10);
-		// Checks if the right sensor was bumped after 10 ms which
-		// counts as both sensors being bumped.
-		if (getLightSensorData(SENSOR_RIGHT) == 1) {
-			sensor = SENSOR_BOTH;
-		} else { // Just the left sensor was bumped.
-			sensor = SENSOR_LEFT;
-		}
+	if (leftSensor && rightSensor) {
+		sensor = SENSOR_BOTH;
 	// Check if the right sensor was bumped.
-	} else if (getLightSensorData(SENSOR_RIGHT) == 1) {
-		sleep(10);
-		// Checks if the left sensor was bumped after 10 ms which
-		// counts as both sensors being bumped.
-		if (getLightSensorData(SENSOR_LEFT) == 1) {
-			sensor = SENSOR_BOTH;
-		} else { // Just the right sensor was bumped.
-			sensor = SENSOR_RIGHT;
-		}
+	} else if (rightSensor) {
+		sensor = SENSOR_RIGHT
+	} else if (leftSensor) {
+		sensor = SENSOR_LEFT
 	}
 
 	// Finds out which sensor(s) was/were bumped.

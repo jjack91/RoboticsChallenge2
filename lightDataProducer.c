@@ -59,7 +59,8 @@ task processLightData()
 			displayBigTextLine(12, "Status: L=%d R=%d", isLeftDark, isRightDark);
       // if average value from raw readings is within range : 0 to current avg value from buffer + TOLERANCE 
       // store the average in the dark buffer
-			if(leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD <= leftAverage)
+			if(leftAverage <= leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD
+				/*&& leftSensorAverageDarkBuffer[leftSensorLightIndex_DarkAve] >= leftAverage-TOLERANCE_THRESHOLD*/)
 			{
 
 				leftSensorAverageDarkBuffer[(leftSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = leftAverage;
@@ -88,7 +89,7 @@ task processLightData()
 			rightAverage = rightAverage / READING_COUNT;
 
 			if(/*rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve] >= rightAverage-TOLERANCE_THRESHOLD
-				&&*/ rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD <= rightAverage)
+				&&*/  rightAverage <= rightSensorAverageDarkBuffer[rightSensorLightIndex_DarkAve]+TOLERANCE_THRESHOLD)
 			{
 				rightSensorAverageDarkBuffer[(rightSensorLightIndex_DarkAve+1) % BUFFER_SIZE] = rightAverage;
 				rightSensorLightIndex_DarkAve = ++rightSensorLightIndex_DarkAve % BUFFER_SIZE;

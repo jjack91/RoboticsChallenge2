@@ -196,7 +196,7 @@ static void turn(Turn turn) {
 static void reverse() {
 	motor(LEFT_MOTOR) = SPEED_REVERSE;
 	motor(RIGHT_MOTOR) = SPEED_REVERSE;
-	sleep(WAIT_FULL_SEC);
+	sleep(WAIT_HALF_SEC);
 }
 
 /* Stops all movement of the robot. */
@@ -260,8 +260,11 @@ static int sensorDetect() {
 	Sensor sensor = SENSOR_NONE;
 
 	// Check if the left sensor was bumped.
-	if (sonar_isObjectFound() == 1) {
-		sensor = SENSOR_SONAR;
+	if (sonar_isObjectFound() == 1 && sonar_getDistance() >= 5) {
+		sleep(10)
+		if (sonar_isObjectFound() == 1) {
+			sensor = SENSOR_SONAR;
+		}
 	} else if (getLightSensorData(SENSOR_LEFT) == 1) {
 		sleep(10);
 		// Checks if the right sensor was bumped after 10 ms which
@@ -310,7 +313,7 @@ static int sensorDetect() {
 			//turn(TURN_RIGHT);
 			//sleep(500);
 			return 1;
-		case (SENSOR_SONAR) :	
+		case (SENSOR_SONAR) :
 			setLEDColor(ledGreenFlash);
 			stopMotors();
 			moveTowardsObject();
@@ -342,9 +345,12 @@ static void calibrate()
 	createLeftThreshold();
 	reverse();
 	createRightThreshold();
-
+	reverse();
 
 	displayBigTextLine(1, "Running");
+	displayBigTextLine(4, "");
+	displayBigTextLine(6, "");
+	displayBigTextLine(8, "");
 }
 
 static void rightSensorTest()
@@ -469,16 +475,16 @@ static void createRightThreshold()
 	thresholdRight = (white + black)/2;
 }
 
-static void moveTowardsObject() 
+static void moveTowardsObject()
 {
 	while (sonar_isObjectFound() == 1) {
 		int proportional_speed = (int) (SPEED_HIGH * sonar_getProportion());
 		displayBigTextLine(12, "SPEED: %d", proportional_speed);
-		
+
 		motor(LEFT_MOTOR) = proportional_speed;
 		motor(RIGHT_MOTOR) = proportional_speed;
 	}
 	stopMotors();
 	turn(TURN_AROUND);
 	stopMotors();
-}	
+}

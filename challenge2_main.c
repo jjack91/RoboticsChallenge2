@@ -6,7 +6,8 @@
 /**********Includes**********/
 #include "timeProducer.c"
 #include "speedProducer.c"
-//#include "lightDataProducer_alt.c"
+#include "sonarProducer.c"
+#include "lightDataProducer_alt.c"
 
 /**********Defined Variables**********/
 #define LEFT_SENSOR S4
@@ -37,7 +38,8 @@ typedef enum Sensor {
 					 SENSOR_NONE = -1,
 					 SENSOR_LEFT,
 					 SENSOR_RIGHT,
-					 SENSOR_BOTH};
+					 SENSOR_BOTH,
+					 SENSOR_SONAR};
 
 typedef enum Speed {
 				  SPEED_LOW = -15,
@@ -67,7 +69,7 @@ static void veer(Direction dir, int speed);
 static void turn(Turn turn);
 static void reverse();
 static void stopMotors();
-static int sensorBump();
+//static int sensorBump();
 static int sensorDetect();
 static void calibrate();
 static void rightSensorTest();
@@ -76,6 +78,7 @@ static void bothSensorTest();
 int getLightSensorData(Sensor theSensor);
 static void createLeftThreshold();
 static void createRightThreshold();
+static void moveTowardsObject();
 
 
 /* Main starting point of the program. */
@@ -88,6 +91,7 @@ task main() {
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
 	startTask(populateSpeeds);
+	startTask(populateSonarValues);
 	//startTask(processLightData);
 
 
@@ -132,7 +136,7 @@ static void chooseTurnDirection() {
 static void traverse(Direction dir) {
 	int time = getTime();
 	int speed = getSpeed();
-	veer(dir, speed);
+	veer(dir, SPEED_LOW);
 
 	// Duration of traversing with sensor checks.
 	for(int i = 0; i < time; i += INTERRUPT_CHECK_MS) {
@@ -199,64 +203,66 @@ static void reverse() {
 static void stopMotors() {
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
-	sleep(WAIT_TWO_SEC);
+	sleep(WAIT_HALF_SEC);
 }
 
-/* Interupt for checking if a sensor was bumped. */
-/* Deprecated for Challenge 2. Keep for reference.*/
-static int sensorBump() {
+///* Interupt for checking if a sensor was bumped. */
+///* Deprecated for Challenge 2. Keep for reference.*/
+//static int sensorBump() {
+
+//	Sensor sensor = SENSOR_NONE;
+
+//	// Check if the left sensor was bumped.
+//	if (SensorValue(LEFT_SENSOR) ==  1) {
+//		sleep(10);
+//		// Checks if the right sensor was bumped after 10 ms which
+//		// counts as both sensors being bumped.
+//		if (SensorValue(RIGHT_SENSOR) ==  1) {
+//			sensor = SENSOR_BOTH;
+//		} else { // Just the left sensor was bumped.
+//			sensor = SENSOR_LEFT;
+//		}
+//	// Check if the right sensor was bumped.
+//	} else if (SensorValue(RIGHT_SENSOR) ==  1) {
+//		sleep(10);
+//		// Checks if the left sensor was bumped after 10 ms which
+//		// counts as both sensors being bumped.
+//		if (SensorValue(LEFT_SENSOR) ==  1) {
+//			sensor = SENSOR_BOTH;
+//		} else { // Just the right sensor was bumped.
+//			sensor = SENSOR_RIGHT;
+//		}
+//	}
+
+//	// Finds out which sensor(s) was/were bumped.
+//	switch (sensor) {
+//		case (SENSOR_BOTH) :
+//			playSound(soundBeepBeep);
+//			reverse();
+//			stopMotors();
+//			chooseTurnDirection();
+//			return 1;
+//		case (SENSOR_LEFT) :
+//			reverse();
+//			turn(TURN_RIGHT);
+//			return 1;
+//		case (SENSOR_RIGHT) :
+//			reverse();
+//			turn(TURN_LEFT);
+//			return 1;
+//		default : // SENSOR_NONE
+//			return 0;
+//	}
+//}
+
+static int sensorDetect() {
 
 	Sensor sensor = SENSOR_NONE;
 
 	// Check if the left sensor was bumped.
-	if (SensorValue(LEFT_SENSOR) ==  1) {
-		sleep(10);
-		// Checks if the right sensor was bumped after 10 ms which
-		// counts as both sensors being bumped.
-		if (SensorValue(RIGHT_SENSOR) ==  1) {
-			sensor = SENSOR_BOTH;
-		} else { // Just the left sensor was bumped.
-			sensor = SENSOR_LEFT;
-		}
-	// Check if the right sensor was bumped.
-	} else if (SensorValue(RIGHT_SENSOR) ==  1) {
-		sleep(10);
-		// Checks if the left sensor was bumped after 10 ms which
-		// counts as both sensors being bumped.
-		if (SensorValue(LEFT_SENSOR) ==  1) {
-			sensor = SENSOR_BOTH;
-		} else { // Just the right sensor was bumped.
-			sensor = SENSOR_RIGHT;
-		}
-	}
-
-	// Finds out which sensor(s) was/were bumped.
-	switch (sensor) {
-		case (SENSOR_BOTH) :
-			playSound(soundBeepBeep);
-			reverse();
-			stopMotors();
-			chooseTurnDirection();
-			return 1;
-		case (SENSOR_LEFT) :
-			reverse();
-			turn(TURN_RIGHT);
-			return 1;
-		case (SENSOR_RIGHT) :
-			reverse();
-			turn(TURN_LEFT);
-			return 1;
-		default : // SENSOR_NONE
-			return 0;
-	}
-}
-
-	static int sensorDetect() {
-
-	Sensor sensor = SENSOR_NONE;
-
-	// Check if the left sensor was bumped.
-	if (getLightSensorData(SENSOR_LEFT) == 1) {
+	if (sonar_isObjectFound() == 1) {
+		sensor = SENSOR_SONAR;
+	} else if (getLightSensorData(SENSOR_LEFT) == 1) {
 		sleep(10);
 		// Checks if the right sensor was bumped after 10 ms which
 		// counts as both sensors being bumped.
@@ -303,6 +309,11 @@ static int sensorBump() {
 			veer(DIR_RIGHT, 0);
 			//turn(TURN_RIGHT);
 			//sleep(500);
+			return 1;
+		case (SENSOR_SONAR) :	
+			setLEDColor(ledGreenFlash);
+			stopMotors();
+			moveTowardsObject();
 			return 1;
 		default : // SENSOR_NONE
 			return 0;
@@ -457,3 +468,17 @@ static void createRightThreshold()
 	int black = SensorValue[S3];
 	thresholdRight = (white + black)/2;
 }
+
+static void moveTowardsObject() 
+{
+	while (sonar_isObjectFound() == 1) {
+		int proportional_speed = (int) (SPEED_HIGH * sonar_getProportion());
+		displayBigTextLine(12, "SPEED: %d", proportional_speed);
+		
+		motor(LEFT_MOTOR) = proportional_speed;
+		motor(RIGHT_MOTOR) = proportional_speed;
+	}
+	stopMotors();
+	turn(TURN_AROUND);
+	stopMotors();
+}	

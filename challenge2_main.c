@@ -76,14 +76,15 @@ static void rightSensorTest();
 static void leftSensorTest();
 static void bothSensorTest();
 int getLightSensorData(Sensor theSensor);
-static void createLeftThreshold();
-static void createRightThreshold();
+static void createLeftThreshold(int white);
+static void createRightThreshold(int white);
 static void moveTowardsObject();
 
 
 /* Main starting point of the program. */
 task main() {
 
+	startTask(processLightData);
 	calibrate();
 	//bothSensorTest();
 
@@ -91,8 +92,8 @@ task main() {
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
 	startTask(populateSpeeds);
-	startTask(populateSonarValues);
-	//startTask(processLightData);
+	//startTask(populateSonarValues);
+
 
 
 	// The loop for the robot's movement.
@@ -295,23 +296,23 @@ static int sensorDetect() {
 		//	chooseTurnDirection();
 			setLEDColor(ledRedFlash);
 			veer(DIR_STRAIGHT, SPEED_LOW);
-			//sleep(500);
+			sleep(100);
 			return 1;
 		case (SENSOR_LEFT) :
 		//	reverse();
 		//	turn(TURN_RIGHT);
 			setLEDColor(ledOrangePulse);
-			veer(DIR_LEFT, 0);
+			veer(DIR_LEFT, 15);
 			//turn(TURN_LEFT);
-			//sleep(500);
+			sleep(200);
 			return 1;
 		case (SENSOR_RIGHT) :
 		//	reverse();
 		//	turn(TURN_LEFT);
 			setLEDColor(ledRed);
-			veer(DIR_RIGHT, 0);
+			veer(DIR_RIGHT, 15);
 			//turn(TURN_RIGHT);
-			//sleep(500);
+			sleep(200);
 			return 1;
 		case (SENSOR_SONAR) :
 			setLEDColor(ledGreenFlash);
@@ -341,10 +342,12 @@ static void calibrate()
 	displayBigTextLine(1, "1");
 	sleep(1000);
 	displayBigTextLine(1, "0 ... Reading...");
-
-	createLeftThreshold();
-	reverse();
-	createRightThreshold();
+	int whiteL = readLightSensor(1);
+	int whiteR = readLightSensor(2);
+	createLeftThreshold(whiteL);
+	//reverse();
+	sleep(1000);
+	createRightThreshold(whiteR);
 	reverse();
 
 	displayBigTextLine(1, "Running");
@@ -359,7 +362,7 @@ static void rightSensorTest()
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
 
-	while(SensorValue[S3] >= white-5)
+	while(SensorValue[S3] >= white/2)
 	{
 		sleep(100);
 	}
@@ -373,7 +376,7 @@ static void leftSensorTest()
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
 
-	while(SensorValue[S4] >= white-5)
+	while(SensorValue[S4] >= white/2)
 	{
 		sleep(100);
 	}
@@ -398,9 +401,11 @@ static void bothSensorTest()
 
 int getLightSensorData(Sensor theSensor)
 {
+	int leftReadings[10];
+
 	if(theSensor == SENSOR_RIGHT)
 	{
-		if(SensorValue[S4] < thresholdLeft)
+		if(readLightSensor(1) < thresholdLeft)
 		{
 			return 1;
 		}
@@ -412,7 +417,7 @@ int getLightSensorData(Sensor theSensor)
 	}
 	else if(theSensor == SENSOR_LEFT)
 	{
-		if(SensorValue[S3] < thresholdRight)
+		if(readLightSensor(2) < thresholdRight)
 		{
 			return 1;
 		}
@@ -424,7 +429,7 @@ int getLightSensorData(Sensor theSensor)
 	}
 	else if(theSensor == SENSOR_BOTH)
 	{
-		if((SensorValue[S4] < thresholdLeft) && (SensorValue[S3] < thresholdRight))
+		if((readLightSensor(1) < thresholdLeft) && (readLightSensor(2) < thresholdRight))
 		{
 			return 2;
 		}
@@ -441,36 +446,39 @@ int getLightSensorData(Sensor theSensor)
 	}
 }
 
-static void createLeftThreshold()
+static void createLeftThreshold(int white)
 {
-	int white = SensorValue[S4];
+	//white = SensorValue[S4];
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
-
+	displayBigTextLine(4, "White = %d", white);
 	while(SensorValue[S4] >= white-5)
 	{
 		sleep(100);
+		displayBigTextLine(6, "Looking = %d", SensorValue[S4]);
 	}
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
-
+	sleep(1000);
 	int black = SensorValue[S4];
 	thresholdLeft = (white + black)/2;
 }
 
-static void createRightThreshold()
+static void createRightThreshold(int white)
 {
-	int white = SensorValue[S3];
+	//white = SensorValue[S3];
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
+	displayBigTextLine(4, "White = %d", white);
 
 	while(SensorValue[S3] >= white-5)
 	{
 		sleep(100);
+		displayBigTextLine(6, "Looking = %d", SensorValue[S3]);
 	}
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
-
+	sleep(1000);
 	int black = SensorValue[S3];
 	thresholdRight = (white + black)/2;
 }

@@ -53,19 +53,16 @@ static const int MAX_ROLL = 95;
 static const int INTERRUPT_CHECK_MS = 100;
 
 /**********Global Variables***********/
-static int COLOR_BLACK_L;
-static int COLOR_WHITE_L;
-static int COLOR_BLACK_R;
-static int COLOR_WHITE_R;
 static int thresholdLeft;
 static int thresholdRight;
+static int lineFollow;
 
 /**********Private Function Prototypes**********/
 static void walk();
 static Direction chooseDirection();
 static void chooseTurnDirection();
 static void traverse(Direction dir);
-static void veer(Direction dir, int speed);
+static void veer(Direction dir, int forwardSpeed, int speed);
 static void turn(Turn turn);
 static void reverse();
 static void stopMotors();
@@ -84,7 +81,8 @@ static void moveTowardsObject();
 /* Main starting point of the program. */
 task main() {
 
-	startTask(processLightData);
+	//startTask(processLightData);
+	lineFollow = 0;
 	calibrate();
 	//bothSensorTest();
 
@@ -92,7 +90,7 @@ task main() {
 	// Starts the population of the time buffer in its own thread.
 	startTask(populateTimes);
 	startTask(populateSpeeds);
-	//startTask(populateSonarValues);
+	startTask(populateSonarValues);
 
 
 
@@ -137,33 +135,65 @@ static void chooseTurnDirection() {
 static void traverse(Direction dir) {
 	int time = getTime();
 	int speed = getSpeed();
-	veer(dir, SPEED_LOW);
+	veer(dir, SPEED_HIGH, SPEED_LOW);
 
 	// Duration of traversing with sensor checks.
 	for(int i = 0; i < time; i += INTERRUPT_CHECK_MS) {
-		if (sensorDetect() == 1) {
+		int status = sensorDetect();
+		displayBigTextLine(4, "ThreshL = %d", thresholdLeft);
+		displayBigTextLine(6, "ThreshR = %d", thresholdRight);
+		displayBigTextLine(8, "LookL = %d", SensorValue[S4]);
+		displayBigTextLine(10, "LookR = %d", SensorValue[S3]);
+		if (status >= 1) {
+			lineFollow = status;
 			return;
 		}
+		else if(status == 0 && lineFollow != 0)
+		{
+
+			status = 0;
+			turn(TURN_RIGHT);
+			stopMotors();
+			status = sensorDetect();
+			if(status >= 1)
+			{
+				lineFollow = 0;
+				return;
+			}
+			turn(TURN_AROUND);
+			stopMotors();
+			status = sensorDetect();
+			lineFollow = 0;
+			if(status >= 1)
+			{
+				return;
+			}
+			turn(TURN_RIGHT);
+			stopMotors();
+			lineFollow = 0;
+		}
+
 		setLEDColor(ledGreen);
+		lineFollow = 0;
 		sleep(INTERRUPT_CHECK_MS);
 		displayBigTextLine(10, "");
 	}
 }
 
 /* Sets the wheel speeds to cause a veer (or go straight). */
-static void veer(Direction dir, int speed) {
+static void veer(Direction dir, int forwardSpeed, int speed) {
 	switch (dir) {
 		case (DIR_LEFT) :
 			motor(LEFT_MOTOR) = speed;
-			motor(RIGHT_MOTOR) = SPEED_HIGH;
+			motor(RIGHT_MOTOR) = forwardSpeed;
 			break;
 		case (DIR_RIGHT) :
-			motor(LEFT_MOTOR) = SPEED_HIGH;
+			motor(LEFT_MOTOR) = forwardSpeed;
 			motor(RIGHT_MOTOR) = speed;
 			break;
 		case (DIR_STRAIGHT) :
-			motor(LEFT_MOTOR) = SPEED_HIGH;
-			motor(RIGHT_MOTOR) = SPEED_HIGH;
+			motor(LEFT_MOTOR) = forwardSpeed;
+			motor(RIGHT_MOTOR) = forwardSpeed;
 			break;
 		default : // Invalid direction.
 			return;
@@ -176,17 +206,38 @@ static void turn(Turn turn) {
 		case (TURN_LEFT) :
 			motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
-			sleep(WAIT_HALF_SEC);
+			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS)
+			{
+				if (sensorDetect() >= 1) {
+					//lineFollow = status;
+					return;
+				}
+				sleep(INTERRUPT_CHECK_MS);
+			}
 			break;
 		case (TURN_RIGHT) :
 			motor(LEFT_MOTOR) = SPEED_TURN_FORWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_BACKWARD;
-			sleep(WAIT_HALF_SEC);
+			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS)
+			{
+				if (sensorDetect() >= 1) {
+					//lineFollow = status;
+					return;
+				}
+				sleep(INTERRUPT_CHECK_MS);
+			}
 			break;
 		case (TURN_AROUND) :
 			motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
-			sleep(WAIT_FULL_SEC);
+			for(int i = 0; i < WAIT_FULL_SEC; i += INTERRUPT_CHECK_MS)
+			{
+				if (sensorDetect() >= 1) {
+					//lineFollow = status;
+					return;
+				}
+				sleep(INTERRUPT_CHECK_MS);
+			}
 			break;
 		default : // Invalid turn.
 			return;
@@ -295,25 +346,28 @@ static int sensorDetect() {
 		//	stopMotors();
 		//	chooseTurnDirection();
 			setLEDColor(ledRedFlash);
-			veer(DIR_STRAIGHT, SPEED_LOW);
+			veer(DIR_STRAIGHT, -25, SPEED_LOW);
+			lineFollow = 1;
 			sleep(100);
 			return 1;
 		case (SENSOR_LEFT) :
 		//	reverse();
 		//	turn(TURN_RIGHT);
-			setLEDColor(ledOrangePulse);
-			veer(DIR_LEFT, 15);
+			setLEDColor(ledOff);
+			veer(DIR_LEFT, -25, 15);
+			lineFollow = 1;
 			//turn(TURN_LEFT);
-			sleep(200);
-			return 1;
+			sleep(100);
+			return 2;
 		case (SENSOR_RIGHT) :
 		//	reverse();
 		//	turn(TURN_LEFT);
 			setLEDColor(ledRed);
-			veer(DIR_RIGHT, 15);
+			veer(DIR_RIGHT, -25, 15);
 			//turn(TURN_RIGHT);
-			sleep(200);
-			return 1;
+			lineFollow = 1;
+			sleep(100);
+			return 3;
 		case (SENSOR_SONAR) :
 			setLEDColor(ledGreenFlash);
 			stopMotors();
@@ -330,7 +384,7 @@ static void calibrate()
 	displayBigTextLine(6, "sensors over");
 	displayBigTextLine(8, "WHITE");
 
-	sleep(1000);
+	/*sleep(1000);
 	displayBigTextLine(1, "5");
 	sleep(1000);
 	displayBigTextLine(1, "4");
@@ -340,13 +394,13 @@ static void calibrate()
 	displayBigTextLine(1, "2");
 	sleep(1000);
 	displayBigTextLine(1, "1");
-	sleep(1000);
+	sleep(1000);*/
 	displayBigTextLine(1, "0 ... Reading...");
 	int whiteL = readLightSensor(1);
 	int whiteR = readLightSensor(2);
 	createLeftThreshold(whiteL);
-	//reverse();
-	sleep(1000);
+	turn(TURN_AROUND);
+	//sleep(1000);
 	createRightThreshold(whiteR);
 	reverse();
 
@@ -405,7 +459,7 @@ int getLightSensorData(Sensor theSensor)
 
 	if(theSensor == SENSOR_RIGHT)
 	{
-		if(readLightSensor(1) < thresholdLeft)
+		if(SensorValue[S4] < thresholdLeft)
 		{
 			return 1;
 		}
@@ -417,7 +471,7 @@ int getLightSensorData(Sensor theSensor)
 	}
 	else if(theSensor == SENSOR_LEFT)
 	{
-		if(readLightSensor(2) < thresholdRight)
+		if(SensorValue[S3] < thresholdRight)
 		{
 			return 1;
 		}
@@ -429,7 +483,7 @@ int getLightSensorData(Sensor theSensor)
 	}
 	else if(theSensor == SENSOR_BOTH)
 	{
-		if((readLightSensor(1) < thresholdLeft) && (readLightSensor(2) < thresholdRight))
+		if((SensorValue[S4] < thresholdLeft) && (SensorValue[S3] < thresholdRight))
 		{
 			return 2;
 		}
@@ -451,17 +505,30 @@ static void createLeftThreshold(int white)
 	//white = SensorValue[S4];
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
-	displayBigTextLine(4, "White = %d", white);
-	while(SensorValue[S4] >= white-5)
+	int min = 100;
+	int max = 0;
+	int i = 0;
+	while(i < 50)
 	{
 		sleep(100);
-		displayBigTextLine(6, "Looking = %d", SensorValue[S4]);
+		int reading = SensorValue[S4];
+		if(reading > max)
+		{
+			max = reading;
+		}
+		if(reading < min)
+		{
+			min = reading;
+		}
+		displayBigTextLine(4, "Max = %d", max);
+		displayBigTextLine(6, "Min = %d", min);
+		i++;
 	}
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
-	sleep(1000);
-	int black = SensorValue[S4];
-	thresholdLeft = (white + black)/2;
+	//sleep(1000);
+	//int black = SensorValue[S4];
+	thresholdLeft = (max + min)/2;
 }
 
 static void createRightThreshold(int white)
@@ -469,18 +536,31 @@ static void createRightThreshold(int white)
 	//white = SensorValue[S3];
 	motor(LEFT_MOTOR) = SPEED_LOW;
 	motor(RIGHT_MOTOR) = SPEED_LOW;
-	displayBigTextLine(4, "White = %d", white);
 
-	while(SensorValue[S3] >= white-5)
+	int min = 100;
+	int max = 0;
+	int i = 0;
+	while(i < 50)
 	{
 		sleep(100);
-		displayBigTextLine(6, "Looking = %d", SensorValue[S3]);
+		int reading = SensorValue[S3];
+		if(reading > max)
+		{
+			max = reading;
+		}
+		if(reading < min)
+		{
+			min = reading;
+		}
+		displayBigTextLine(4, "Max = %d", max);
+		displayBigTextLine(6, "Min = %d", min);
+		i++;
 	}
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
-	sleep(1000);
-	int black = SensorValue[S3];
-	thresholdRight = (white + black)/2;
+	//sleep(1000);
+	//int black = SensorValue[S3];
+	thresholdRight = (max + min)/4;
 }
 
 static void moveTowardsObject()

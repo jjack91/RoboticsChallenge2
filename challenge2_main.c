@@ -56,6 +56,7 @@ static const int INTERRUPT_CHECK_MS = 100;
 static int thresholdLeft;
 static int thresholdRight;
 static int lineFollow;
+static int objectDetect;
 
 /**********Private Function Prototypes**********/
 static void walk();
@@ -310,10 +311,14 @@ static void stopMotors() {
 static int sensorDetect() {
 
 	Sensor sensor = SENSOR_NONE;
-
+	if (objectDetect == 1) {
+		return 0;
+	}
+	
+	
 	// Check if the left sensor was bumped.
 	if (sonar_isObjectFound() == 1 && sonar_getDistance() >= 5) {
-		sleep(10)
+		sleep(10);
 		if (sonar_isObjectFound() == 1) {
 			sensor = SENSOR_SONAR;
 		}
@@ -371,8 +376,12 @@ static int sensorDetect() {
 		case (SENSOR_SONAR) :
 			setLEDColor(ledGreenFlash);
 			stopMotors();
+			lineFollow = 0;
+			objectDetect = 1;
 			moveTowardsObject();
-			return 1;
+			stopMotors();
+			sleep(100);
+			return 4;
 		default : // SENSOR_NONE
 			return 0;
 	}
@@ -565,14 +574,17 @@ static void createRightThreshold(int white)
 
 static void moveTowardsObject()
 {
-	while (sonar_isObjectFound() == 1) {
-		int proportional_speed = (int) (SPEED_HIGH * sonar_getProportion());
+	while (sonar_isObjectFound() != 0) {
+		int proportional_speed = (int) (SPEED_HIGH * 2 * sonar_getProportion());
 		displayBigTextLine(12, "SPEED: %d", proportional_speed);
 
 		motor(LEFT_MOTOR) = proportional_speed;
 		motor(RIGHT_MOTOR) = proportional_speed;
 	}
 	stopMotors();
-	turn(TURN_AROUND);
-	stopMotors();
+	motor(LEFT_MOTOR) = SPEED_HIGH;
+	motor(RIGHT_MOTOR) = -SPEED_HIGH;
+	sleep(WAIT_FULL_SEC);
+	objectDetect = 0;
+
 }

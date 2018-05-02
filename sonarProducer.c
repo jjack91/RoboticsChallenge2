@@ -1,8 +1,8 @@
 #define SONAR_SENSOR_VAL S1
 /* Private Constants */
-static const int MAX_DISTANCE = 90; // in cm
-static const int MIN_DISTANCE = 5; // in cm
-static const int AVG_CHECK_SIZE = 15;
+static const int MAX_DISTANCE = 110; // in cm
+static const int MIN_DISTANCE = 15; // in cm
+static const int AVG_CHECK_SIZE = 10;
 
 /* Private Function Prototypes */
 static int sonar_getNextDistance();
@@ -20,21 +20,21 @@ static int currentDistance = 0;
 /* Tasks to populate the distances retrieved from the sonar sensor
    into a buffer that tells the robot how close they are to an object
    if they are within about 3 feet of it. */
-task populateSonarValues() 
+task populateSonarValues()
 {
-  while(true) 
+  while(true)
 	{
-		
+
 		displayBigTextLine(4, "SONAR SENSOR:");
     currentDistance = sonar_getNextDistance(); // get noise-filtered distance
 		displayBigTextLine(6, "DISTANCE: %d", currentDistance);
     // when object detected
-    if (currentDistance <= MAX_DISTANCE && currentDistance >= MIN_DISTANCE) 
+    if (currentDistance <= MAX_DISTANCE && currentDistance >= MIN_DISTANCE)
     {
       objectFound = 1;
 			displayBigTextLine(8, "OBJECT: FOUND");
-    } 
-    else 
+    }
+    else
     {
       objectFound = 0;
 			displayBigTextLine(8, "OBJECT: NOT FOUND");
@@ -64,11 +64,11 @@ int sonar_isObjectFound() {
 /* Provides the next normalized distance from the
    distance buffer and increments the proper pointers */
 int sonar_getDistance() {
-  if (objectFound == 1) 
+  if (objectFound == 1)
   {
     return currentDistance;
-  } 
-  else 
+  }
+  else
   {
     return -1;
   }

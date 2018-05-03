@@ -208,41 +208,43 @@ static void veer(Direction dir, int forwardSpeed, int speed) {
 
 /* Function for turning the robot based off of the supplied turn. */
 static void turn(Turn turn) {
+	int interrupt_check_offset = 30; // allows for more or less interrupt checking from sensors
+
 	switch (turn) {
 		case (TURN_LEFT) :
 			motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
-			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS)
+			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS - interrupt_check_offset)
 			{
 				if (sensorDetect() >= 1) {
 					//lineFollow = status;
 					return;
 				}
-				sleep(INTERRUPT_CHECK_MS);
+				sleep(INTERRUPT_CHECK_MS - interrupt_check_offset);
 			}
 			break;
 		case (TURN_RIGHT) :
 			motor(LEFT_MOTOR) = SPEED_TURN_FORWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_BACKWARD;
-			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS)
+			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS - interrupt_check_offset)
 			{
 				if (sensorDetect() >= 1) {
 					//lineFollow = status;
 					return;
 				}
-				sleep(INTERRUPT_CHECK_MS);
+				sleep(INTERRUPT_CHECK_MS - interrupt_check_offset);
 			}
 			break;
 		case (TURN_AROUND) :
 			motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
-			for(int i = 0; i < WAIT_FULL_SEC; i += INTERRUPT_CHECK_MS)
+			for(int i = 0; i < WAIT_FULL_SEC; i += INTERRUPT_CHECK_MS - interrupt_check_offset)
 			{
 				if (sensorDetect() >= 1) {
 					//lineFollow = status;
 					return;
 				}
-				sleep(INTERRUPT_CHECK_MS);
+				sleep(INTERRUPT_CHECK_MS - interrupt_check_offset);
 			}
 			break;
 		default : // Invalid turn.

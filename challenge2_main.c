@@ -45,12 +45,13 @@ typedef enum Speed {
 				  SPEED_LOW = -15,
 					SPEED_HIGH = -40,
 					SPEED_REVERSE = 25,
-					SPEED_TURN_FORWARD = -50,
-					SPEED_TURN_BACKWARD = 50};
+					SPEED_TURN_FORWARD = -30,
+					SPEED_TURN_BACKWARD = 30};
 
 /**********Private Constants**********/
 static const int MAX_ROLL = 95;
 static const int INTERRUPT_CHECK_MS = 100;
+static const int INTERRUPT_CHECK_MS2 = 80;
 
 /**********Global Variables***********/
 static int thresholdLeft;
@@ -146,7 +147,10 @@ static void traverse(Direction dir) {
 		displayBigTextLine(8, "LookL = %d", SensorValue[S4]);
 		displayBigTextLine(10, "LookR = %d", SensorValue[S3]);
 		if (status >= 1) {
-			lineFollow = status;
+			if(status < 4)
+			{
+				lineFollow = status;
+			}
 			return;
 		}
 		else if(status == 0 && lineFollow != 0)
@@ -171,6 +175,7 @@ static void traverse(Direction dir) {
 			}
 			turn(TURN_RIGHT);
 			stopMotors();
+			playSound(soundBeepBeep);
 			lineFollow = 0;
 		}
 
@@ -314,12 +319,14 @@ static int sensorDetect() {
 	if (objectDetect == 1) {
 		return 0;
 	}
-	
-	
+
+
 	// Check if the left sensor was bumped.
 	if (sonar_isObjectFound() == 1 && sonar_getDistance() >= 5) {
+		lineFollow = 0;
 		sleep(10);
 		if (sonar_isObjectFound() == 1) {
+			lineFollow = 0;
 			sensor = SENSOR_SONAR;
 		}
 	} else if (getLightSensorData(SENSOR_LEFT) == 1) {
@@ -408,8 +415,9 @@ static void calibrate()
 	int whiteL = readLightSensor(1);
 	int whiteR = readLightSensor(2);
 	createLeftThreshold(whiteL);
-	turn(TURN_AROUND);
-	//sleep(1000);
+	motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
+	motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
+	sleep(WAIT_FULL_SEC);
 	createRightThreshold(whiteR);
 	reverse();
 
@@ -582,9 +590,14 @@ static void moveTowardsObject()
 		motor(RIGHT_MOTOR) = proportional_speed;
 	}
 	stopMotors();
+	sleep(WAIT_FULL_SEC);
+	sleep(WAIT_FULL_SEC);
+	reverse();
 	motor(LEFT_MOTOR) = SPEED_HIGH;
 	motor(RIGHT_MOTOR) = -SPEED_HIGH;
 	sleep(WAIT_FULL_SEC);
+	motorStop();
 	objectDetect = 0;
+	lineFollow = 0;
 
 }

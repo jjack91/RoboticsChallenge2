@@ -7,7 +7,6 @@
 #include "timeProducer.c"
 #include "speedProducer.c"
 #include "sonarProducer.c"
-#include "lightDataProducer_alt.c"
 
 /**********Defined Variables**********/
 #define LEFT_SENSOR S4
@@ -43,8 +42,10 @@ typedef enum Sensor {
 
 typedef enum Speed {
 				  SPEED_LOW = -15,
+				  SPEED_LINE_FOLLOW = -25,
 					SPEED_HIGH = -40,
 					SPEED_REVERSE = 25,
+					SPEED_SLOW_REVERSE = 15,
 					SPEED_TURN_FORWARD = -30,
 					SPEED_TURN_BACKWARD = 30};
 
@@ -208,43 +209,41 @@ static void veer(Direction dir, int forwardSpeed, int speed) {
 
 /* Function for turning the robot based off of the supplied turn. */
 static void turn(Turn turn) {
-	int interrupt_check_offset = 30; // allows for more or less interrupt checking from sensors
-
 	switch (turn) {
 		case (TURN_LEFT) :
 			motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
-			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS - interrupt_check_offset)
+			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS)
 			{
 				if (sensorDetect() >= 1) {
 					//lineFollow = status;
 					return;
 				}
-				sleep(INTERRUPT_CHECK_MS - interrupt_check_offset);
+				sleep(INTERRUPT_CHECK_MS);
 			}
 			break;
 		case (TURN_RIGHT) :
 			motor(LEFT_MOTOR) = SPEED_TURN_FORWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_BACKWARD;
-			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS - interrupt_check_offset)
+			for(int i = 0; i < WAIT_HALF_SEC; i += INTERRUPT_CHECK_MS)
 			{
 				if (sensorDetect() >= 1) {
 					//lineFollow = status;
 					return;
 				}
-				sleep(INTERRUPT_CHECK_MS - interrupt_check_offset);
+				sleep(INTERRUPT_CHECK_MS);
 			}
 			break;
 		case (TURN_AROUND) :
 			motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 			motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
-			for(int i = 0; i < WAIT_FULL_SEC; i += INTERRUPT_CHECK_MS - interrupt_check_offset)
+			for(int i = 0; i < WAIT_FULL_SEC; i += INTERRUPT_CHECK_MS)
 			{
 				if (sensorDetect() >= 1) {
 					//lineFollow = status;
 					return;
 				}
-				sleep(INTERRUPT_CHECK_MS - interrupt_check_offset);
+				sleep(INTERRUPT_CHECK_MS);
 			}
 			break;
 		default : // Invalid turn.
@@ -315,6 +314,12 @@ static void stopMotors() {
 //	}
 //}
 
+
+/*
+ * Altered and updated version of sensorBump. This iteration uses similar logic
+ * to check for any readings from the sonar or the two light sensors. Sonar will take
+ * priority over light sensor readings. Returns an int based on which sensor tripped.
+ */
 static int sensorDetect() {
 
 	Sensor sensor = SENSOR_NONE;
@@ -323,7 +328,7 @@ static int sensorDetect() {
 	}
 
 
-	// Check if the left sensor was bumped.
+	// Check if the sonar was tripped.
 	if (sonar_isObjectFound() == 1 && sonar_getDistance() >= 5) {
 		lineFollow = 0;
 		sleep(10);
@@ -333,54 +338,44 @@ static int sensorDetect() {
 		}
 	} else if (getLightSensorData(SENSOR_LEFT) == 1) {
 		sleep(10);
-		// Checks if the right sensor was bumped after 10 ms which
-		// counts as both sensors being bumped.
+		// Checks if the right sensor was tripped after 10 ms which
+		// counts as both sensors being tripped.
 		if (getLightSensorData(SENSOR_RIGHT) == 1) {
 			sensor = SENSOR_BOTH;
-		} else { // Just the left sensor was bumped.
+		} else { // Just the left sensor was tripped.
 			sensor = SENSOR_LEFT;
 		}
-	// Check if the right sensor was bumped.
+	// Check if the right sensor was tripped.
 	} else if (getLightSensorData(SENSOR_RIGHT) == 1) {
 		sleep(10);
-		// Checks if the left sensor was bumped after 10 ms which
-		// counts as both sensors being bumped.
+		// Checks if the left sensor was tripped after 10 ms which
+		// counts as both sensors being tripped.
 		if (getLightSensorData(SENSOR_LEFT) == 1) {
 			sensor = SENSOR_BOTH;
-		} else { // Just the right sensor was bumped.
+		} else { // Just the right sensor was tripped.
 			sensor = SENSOR_RIGHT;
 		}
 	}
 
-	// Finds out which sensor(s) was/were bumped.
+	// Finds out which sensor(s) was/were tripped.
 	switch (sensor) {
 		case (SENSOR_BOTH) :
-		//	playSound(soundBeepBeep);
-		//	reverse();
-		//	stopMotors();
-		//	chooseTurnDirection();
 			setLEDColor(ledRedFlash);
-			veer(DIR_STRAIGHT, -25, SPEED_LOW);
+			veer(DIR_STRAIGHT, SPEED_LINE_FOLLOW, SPEED_LOW);
 			lineFollow = 1;
-			sleep(100);
+			sleep(INTERRUPT_CHECK_MS);
 			return 1;
 		case (SENSOR_LEFT) :
-		//	reverse();
-		//	turn(TURN_RIGHT);
 			setLEDColor(ledOff);
-			veer(DIR_LEFT, -25, 15);
+			veer(DIR_LEFT, SPEED_LINE_FOLLOW, SPEED_SLOW_REVERSE);
 			lineFollow = 1;
-			//turn(TURN_LEFT);
-			sleep(100);
+			sleep(INTERRUPT_CHECK_MS);
 			return 2;
 		case (SENSOR_RIGHT) :
-		//	reverse();
-		//	turn(TURN_LEFT);
 			setLEDColor(ledRed);
-			veer(DIR_RIGHT, -25, 15);
-			//turn(TURN_RIGHT);
+			veer(DIR_RIGHT, SPEED_LINE_FOLLOW, SPEED_SLOW_REVERSE);
 			lineFollow = 1;
-			sleep(100);
+			sleep(INTERRUPT_CHECK_MS);
 			return 3;
 		case (SENSOR_SONAR) :
 			setLEDColor(ledGreenFlash);
@@ -389,12 +384,19 @@ static int sensorDetect() {
 			objectDetect = 1;
 			moveTowardsObject();
 			stopMotors();
-			sleep(100);
+			sleep(INTERRUPT_CHECK_MS);
 			return 4;
 		default : // SENSOR_NONE
 			return 0;
 	}
 }
+
+/*
+ * This function is designed to calibrate the robot's
+ * two light sensors automatically. Depending on the
+ * initial placement and usage environment, some manual
+ * adjustment may be necessary during operation.
+ */
 
 static void calibrate()
 {
@@ -402,7 +404,7 @@ static void calibrate()
 	displayBigTextLine(6, "sensors over");
 	displayBigTextLine(8, "WHITE");
 
-	/*sleep(1000);
+	/*sleep(1000);  // 5 second countdown. Uncomment if needed.
 	displayBigTextLine(1, "5");
 	sleep(1000);
 	displayBigTextLine(1, "4");
@@ -414,8 +416,6 @@ static void calibrate()
 	displayBigTextLine(1, "1");
 	sleep(1000);*/
 	displayBigTextLine(1, "0 ... Reading...");
-	int whiteL = readLightSensor(1);
-	int whiteR = readLightSensor(2);
 	createLeftThreshold(whiteL);
 	motor(LEFT_MOTOR) = SPEED_TURN_BACKWARD;
 	motor(RIGHT_MOTOR) = SPEED_TURN_FORWARD;
@@ -429,6 +429,10 @@ static void calibrate()
 	displayBigTextLine(8, "");
 }
 
+/*
+ * ===========SENSOR TESTING BLOCK===============
+ */
+
 static void rightSensorTest()
 {
 	int white = SensorValue[S3];
@@ -437,7 +441,7 @@ static void rightSensorTest()
 
 	while(SensorValue[S3] >= white/2)
 	{
-		sleep(100);
+		sleep(INTERRUPT_CHECK_MS);
 	}
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
@@ -451,7 +455,7 @@ static void leftSensorTest()
 
 	while(SensorValue[S4] >= white/2)
 	{
-		sleep(100);
+		sleep(INTERRUPT_CHECK_MS);
 	}
 	motor(LEFT_MOTOR) = 0;
 	motor(RIGHT_MOTOR) = 0;
@@ -472,9 +476,27 @@ static void bothSensorTest()
 	motor(RIGHT_MOTOR) = 0;
 }
 
+/*
+ * ============END TESTING BLOCK==============
+ */
+
+ 
+ /*
+  * This function will read in the current value of
+  * the specified sensor and compare it to the white/black 
+  * threshold value.
+  *
+  * Input: theSensor
+  *     -The sensor to check the value of
+  *
+  * Return:
+  *     -0 if sensor reading is above the threshold
+  *     -1 if sensor reading is below the threshold
+  */
+ 
 int getLightSensorData(Sensor theSensor)
 {
-	int leftReadings[10];
+	//int leftReadings[10];
 
 	if(theSensor == SENSOR_RIGHT)
 	{
@@ -519,6 +541,13 @@ int getLightSensorData(Sensor theSensor)
 	}
 }
 
+/*
+ * Calibration helper function. Drives the robot slowly
+ * forward for 5 seconds, recording the minimum and maximum
+ * values seen by the left light sensor.
+ *
+ * For use with NXT Light Sensor.
+ */
 static void createLeftThreshold(int white)
 {
 	//white = SensorValue[S4];
@@ -527,9 +556,9 @@ static void createLeftThreshold(int white)
 	int min = 100;
 	int max = 0;
 	int i = 0;
-	while(i < 50)
+	while(i < 50) // 50 ticks of 100ms adds up to 5 seconds
 	{
-		sleep(100);
+		sleep(INTERRUPT_CHECK_MS);
 		int reading = SensorValue[S4];
 		if(reading > max)
 		{
@@ -547,9 +576,16 @@ static void createLeftThreshold(int white)
 	motor(RIGHT_MOTOR) = 0;
 	//sleep(1000);
 	//int black = SensorValue[S4];
-	thresholdLeft = (max + min)/2;
+	thresholdLeft = (max + min)/2; // Average result to find midpoint
 }
 
+/*
+ * Calibration helper function. Drives the robot slowly
+ * forward for 5 seconds, recording the minimum and maximum
+ * values seen by the right light sensor.
+ *
+ * For use with EV3 Color Sensor.
+ */
 static void createRightThreshold(int white)
 {
 	//white = SensorValue[S3];
@@ -559,9 +595,9 @@ static void createRightThreshold(int white)
 	int min = 100;
 	int max = 0;
 	int i = 0;
-	while(i < 50)
+	while(i < 50) // 50 ticks of 100ms adds up to 5 seconds
 	{
-		sleep(100);
+		sleep(INTERRUPT_CHECK_MS);
 		int reading = SensorValue[S3];
 		if(reading > max)
 		{
@@ -579,7 +615,7 @@ static void createRightThreshold(int white)
 	motor(RIGHT_MOTOR) = 0;
 	//sleep(1000);
 	//int black = SensorValue[S3];
-	thresholdRight = (max + min)/4;
+	thresholdRight = (max + min)/4; // 
 }
 
 static void moveTowardsObject()
